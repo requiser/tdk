@@ -10,7 +10,7 @@ from gennn import Gen
 
 CROSS_RATE = 0.8  # mating probability (DNA crossover)
 MUTATION_RATE = 0.003  # mutation probability
-N_GENERATIONS = 10000
+N_GENERATIONS = 1000
 
 module_path = dirname(__file__)
 # data, target, target_names = load_data(module_path, 'dataset.csv')
@@ -28,12 +28,13 @@ with open(data_file_name) as f:
     # feature_names = np.array(temp)
 
     for i, d in enumerate(data_file):
-        data[i] = np.asarray(d[:-1], dtype=np.float64)
-        target[i] = np.asarray(d[-1], dtype=np.float64)
+        data[i] = np.asarray(d[:-1])
+        target[i] = np.asarray(d[-1])
 
     # with open(join(module_path, 'descr', 'dataset.rst')) as rst_file:
     #    fdescr = rst_file.read()
-    feature_names = ['setosa', 'versicolor', 'virginica']
+    feature_names = ['sepal length (cm)', 'sepal width (cm)',
+                     'petal length (cm)', 'petal width (cm)']
     # feature_names = ['input', 'output']
     df = datasets.base.Bunch(data=data, target=target,
                              feature_names=feature_names)
@@ -42,7 +43,6 @@ with open(data_file_name) as f:
 def main():
     # df = datasets.load_iris()
     # X = df.data[:, :4]
-
     X = df.data[:, :4]
     y = df.target
 
@@ -71,18 +71,25 @@ def main():
         # if 'sca' in globals(): sca.remove()
         # sca = plt.scatter(pop, F_values, s=200, lw=0, c='red', alpha=0.5)
         # plt.pause(0.05)
+        # GA part (evolution)
+        fitness = get_fitness(F_values)
+        # mlpr.score(pop[100].reshape(1, -1), y[100].reshape(1, -1))
+        print("Most fitted DNA: ", pop[np.argmax(fitness), :])
+        print(np.argmax(fitness))
+        pop = select(pop, fitness)
+        pop_copy = pop.copy()
+        for parent in pop:
+            child = crossover(parent, pop_copy)
+            child = mutate(child)
+            parent[:] = child
 
-    # GA part (evolution)
-    fitness = get_fitness(F_values)
-    # mlpr.score(pop[100].reshape(1, -1), y[100].reshape(1, -1))
-    print("Most fitted DNA: ", pop[np.argmax(fitness), :])
-    print(np.argmax(fitness))
-    pop = select(pop, fitness)
-    pop_copy = pop.copy()
-    for parent in pop:
-        child = crossover(parent, pop_copy)
-        child = mutate(child)
-        parent[:] = child
+    print(pop)
+    print(F_values)
+    plt.subplot(2, 1, 1)
+    plt.plot(pop, F_values, 'o')
+    plt.subplot(2, 1, 2)
+    plt.plot(X_train, y_train, 'o')
+    plt.show()
 
 
 def get_fitness(pred):
@@ -90,7 +97,7 @@ def get_fitness(pred):
 
 
 def create_population():
-    data_f = np.random.randint(0, 9999, size=(POP_SIZE, DNA_SIZE))
+    data_f = np.random.randint(0, np.argmax(df.data), size=(POP_SIZE, DNA_SIZE))
     pop = np.empty((POP_SIZE, DNA_SIZE))
     for z, g in enumerate(data_f):
         pop[z] = np.asarray(g[:], dtype=np.float64)

@@ -17,7 +17,7 @@ from sklearn import preprocessing
 from sklearn import datasets
 import sklearn.utils
 
-# df = datasets.load_iris()
+df = datasets.load_iris()
 # X = df.data[:, :4]
 # y = df.target
 

@@ -27,8 +27,6 @@ def translateDNA(pop): return pop.dot(2 ** np.arange(DNA_SIZE)[::-1]) / float(2 
 def select(pop, fitness):  # nature selection wrt pop's fitness
     idx = np.random.choice(np.arange(POP_SIZE), size=POP_SIZE, replace=True,
                            p=fitness / fitness.sum())
-    print(fitness)
-    print(fitness.sum())
     return pop[idx]
 
 
