@@ -5,12 +5,11 @@ from sklearn import datasets
 from sklearn.model_selection import train_test_split
 from sklearn.neural_network import MLPRegressor
 import matplotlib.pyplot as plt
+import numpy.linalg as LA
 
-from gennn import Gen
-
-CROSS_RATE = 0.8  # mating probability (DNA crossover)
-MUTATION_RATE = 0.003  # mutation probability
-N_GENERATIONS = 1000
+CROSS_RATE = 0.9  # mating probability (DNA crossover)
+MUTATION_RATE = 0.01  # mutation probability
+N_GENERATIONS = 500
 
 module_path = dirname(__file__)
 # data, target, target_names = load_data(module_path, 'dataset.csv')
@@ -45,17 +44,16 @@ def main():
     # X = df.data[:, :4]
     X = df.data[:, :4]
     y = df.target
-
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=3)
 
-    mlpr = MLPRegressor(hidden_layer_sizes=(50, 60, 45, 32, 99, 53, 25),
+    mlpr = MLPRegressor(hidden_layer_sizes=(64, 128, 256, 512, 768, 1024),
                         activation='relu',
                         solver='adam',
                         learning_rate='adaptive',
                         max_iter=10000,
                         verbose=True)
 
-    mlpr.fit(X_train, y_train)
+    mlpr.fit(X, y)
 
     # mlpr.predict(X)
 
@@ -72,7 +70,7 @@ def main():
         # sca = plt.scatter(pop, F_values, s=200, lw=0, c='red', alpha=0.5)
         # plt.pause(0.05)
         # GA part (evolution)
-        fitness = get_fitness(F_values)
+        fitness = get_fitness(F_values, y)
         # mlpr.score(pop[100].reshape(1, -1), y[100].reshape(1, -1))
         print("Most fitted DNA: ", pop[np.argmax(fitness), :])
         print(np.argmax(fitness))
@@ -92,12 +90,15 @@ def main():
     plt.show()
 
 
-def get_fitness(pred):
-    return pred + 1e-3 - np.min(pred)
+def get_fitness(pred, y_exp):
+    fness = np.empty(POP_SIZE)
+    for j in range(POP_SIZE):
+        fness[i] = pow(1 / (1 + LA.norm((pred[i] - y_exp[i]))), 2)
+    return fness
 
 
 def create_population():
-    data_f = np.random.randint(0, np.argmax(df.data), size=(POP_SIZE, DNA_SIZE))
+    data_f = np.random.uniform(0, np.max(df.data) * 1.1, size=(POP_SIZE, DNA_SIZE))
     pop = np.empty((POP_SIZE, DNA_SIZE))
     for z, g in enumerate(data_f):
         pop[z] = np.asarray(g[:], dtype=np.float64)
@@ -108,7 +109,7 @@ def create_population():
 def mutate(child):
     for point in range(DNA_SIZE):
         if np.random.rand() < MUTATION_RATE:
-            child[point] = 1 if child[point] == 0 else 0
+            child[point] = child[point] + 0.075 if child[point] == 0 else child[point] * 1.1
     return child
 
 
