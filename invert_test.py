@@ -29,6 +29,8 @@ with open(data_file_name) as f:
     temp = next(data_file)
     n_samples = int(temp[0])
     n_features = int(temp[1])
+    POP_SIZE = n_samples
+    DNA_SIZE = n_features
     data = np.empty((n_samples, n_features))
     target = np.empty((n_samples,))
     temp = next(data_file)  # names of features
@@ -41,12 +43,14 @@ with open(data_file_name) as f:
 # with open(join(module_path, 'descr', 'dataset.rst')) as rst_file:
 #    fdescr = rst_file.read()
 
-df = datasets.base.Bunch(data=data, target=target,
-                         feature_names=['input', 'output'])
+# df = datasets.base.Bunch(data=data, target=target,feature_names=['input', 'output'])
+dg = datasets.load_boston()
 
-X = df.data
-y = df.target
-
+X = dg.data
+POP_SIZE = X.shape[0]
+DNA_SIZE = X.shape[1]
+y = dg.target
+print(POP_SIZE,DNA_SIZE)
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=3)
 
 clf = MLPRegressor(hidden_layer_sizes=(50, 60, 45, 32, 99, 53, 25),
@@ -57,7 +61,7 @@ clf = MLPRegressor(hidden_layer_sizes=(50, 60, 45, 32, 99, 53, 25),
                    learning_rate_init=0.01,
                    alpha=0.1,
                    tol=0.000001,
-                   verbose=True)
+                   verbose=False)
 
 clf.fit(X_train, y_train)
 y_pd = clf.predict(X_test)
@@ -72,7 +76,12 @@ plt.subplot(3, 1, 3)
 plt.plot(X_test, y_pd, 'o')
 plt.plot(X_train, y_train, 'o')
 plt.show()
-
+data_f = np.empty((POP_SIZE, DNA_SIZE))
+for o in range(DNA_SIZE):
+    for l in range(POP_SIZE):
+        data_f[l, o] = np.random.uniform(0, np.max(X[:, o]))
+#data_f.reshape((POP_SIZE,DNA_SIZE))
+print(data_f.shape)
 # examples = ['some text', 'another example text', 'example 3']
 
 #    target = np.zeros((3,), dtype=np.int64)
