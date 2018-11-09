@@ -10,9 +10,9 @@ from termcolor import colored
 
 # CROSS_RATE = 0.9  # mating probability (DNA crossover)
 MUTATION_RATE = 0.3  # mutation probability
-retain = 0.1
+retain = 0.2
 random_select = 0.01
-N_GENERATIONS = 500
+N_GENERATIONS = 200
 
 module_path = dirname(__file__)
 # data, target, target_names = load_data(module_path, 'dataset.csv')
@@ -42,8 +42,8 @@ with open(data_file_name) as f:
                      'PTRATIO', 'B', 'LSTAT', 'MEDV']
     df = datasets.base.Bunch(data=data, target=target,
                              feature_names=feature_names)
-    # DNA_SIZE = 3
-    # POP_SIZE = 40
+    # DNA_SIZE = 6
+    # POP_SIZE = 250
     # print(DNA_SIZE)
     X = df.data[:POP_SIZE, :DNA_SIZE]
     # print(X)
@@ -145,7 +145,7 @@ def get_fitness(values, y_exp, score):
     #    F_values[l] = np.max(F_val[l])
     fness = np.empty(POP_SIZE)
     for j in range(POP_SIZE):
-        fness[j] = pow((1 / (score + abs(LA.norm((values[j] - y_exp[j]))))), 4)
+        fness[j] = pow((1 / (1 + abs(LA.norm((values[j] - y_exp[j]))))), 1/2)
     return fness
 
 
@@ -212,7 +212,6 @@ def crossover(father, mother, parents):  # mating process (genes crossover)
         child = mutate(child, parents)
         children.append(child)
     np.asarray(children)
-    print(children.shape)
     return children
 
 
@@ -234,24 +233,24 @@ def evolve(pop, fitness, score):
     # print(graded)
     # Sort on the scores.
     # graded = [x[1] for x in sorted(graded, key=lambda x: x[0], reverse=True)]
-    graded = [x[1] for x in sorted(zip(fitness, pop), key=lambda x: x[0], reverse=False)]
+    graded = [x[1] for x in sorted(zip(fitness, pop), key=lambda x: x[0], reverse=True)]
     graded = np.asarray(graded)
     # Get the number we want to keep for the next gen.
     # if 1 / abs(score - 1) > 1 / (retain + 1):
     #    retains = 1 - (2 - retain - abs(score - 1))
 
-    fitness = [x for x in sorted(fitness, reverse=False)]
+    fitness = [x for x in sorted(fitness, reverse=True)]
     fitness = np.asarray(fitness)
     # print(fitness[:int(retain*len(fitness))])
     # retains = pow(np.average(
     #     (np.average(fitness[:int(retain * len(fitness))]),
     #      np.average(fitness[int(retain * len(fitness)):]))) / np.average(
     #     fitness[:]), 4)
-    retains = pow(np.average((np.average(fitness), np.min(fitness))) / np.max(fitness), 1)
-    print('Retain:\t', retains)
+    # retains = pow(np.average((np.average(fitness), np.min(fitness))) / np.max(fitness), 1/3)
+    # print('Retain:\t', retains)
     # retains = retains if retains > retain else retain
     # print(retains)
-    retain_length = int(len(graded) * retains)
+    retain_length = int(len(graded) * retain)
     # The parents are every network we want to keep.
     parents = np.asarray(graded[:retain_length])
 
@@ -294,8 +293,7 @@ def evolve(pop, fitness, score):
                         # print(babies[k])
                         children = np.concatenate((children, [babies[k]]), axis=0)
                     k = k + 1
-    if children.sum() != 0:
-        parents = np.concatenate((parents, [children]), axis=0)
+    parents = np.concatenate((parents, children), axis=0)
     return parents
 
 
