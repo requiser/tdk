@@ -9,7 +9,7 @@ from sklearn.neural_network import MLPRegressor
 MUTATION_RATE = 0.01  # mutation probability
 retain = 0.2
 random_select = 0.03
-N_GENERATIONS = 200
+N_GENERATIONS = 120
 
 module_path = dirname(__file__)
 data_file_name = join(module_path, 'data', 'boston_house_prices.csv')
@@ -27,13 +27,11 @@ with open(data_file_name) as f:
         data[i] = np.asarray(d[:-1])
         target[i] = np.asarray(d[-1])
 
-    feature_names = ['CRIM', 'ZN', 'INDUS', 'CHAS', 'NOX', 'RM', 'AGE', 'DIS', 'RAD', 'TAX',
-                     'PTRATIO', 'B', 'LSTAT', 'MEDV']
-    df = datasets.base.Bunch(data=data, target=target,
-                             feature_names=feature_names)
+    df = datasets.base.Bunch(data=data, target=target)
 
     X = df.data[:POP_SIZE, :DNA_SIZE]
     y = df.target[:POP_SIZE]
+    y_exp = y
     dt = []
     dt_a = []
     for u in range(DNA_SIZE):
@@ -51,7 +49,6 @@ with open(data_file_name) as f:
             dt.append(1)
         dt_a = []
     dt = np.asarray(dt)
-    print(dt)
     hl = []
     for k in range(int(np.ceil(DNA_SIZE / 2))):
         hl.append(POP_SIZE * (k + 1))
@@ -62,7 +59,7 @@ with open(data_file_name) as f:
                         learning_rate='adaptive',
                         max_iter=100,
                         verbose=True)
-    mlpr.fit(X, y)
+    u = mlpr.fit(X, y)
 
 
 def main():
@@ -70,28 +67,29 @@ def main():
     pop = create_population()
     for _ in range(N_GENERATIONS):
         f_values = mlpr.predict(pop)
-        score = mlpr.score(pop, y)
-        fitness = get_fitness(f_values, y)
-        print('Score:\t', score, '\tFitness:\t', np.average(fitness))
+        fitness = get_fitness(f_values, y_exp)
+        print('Fitness:\t', np.average(fitness))
         pop = evolve(pop, fitness)
     for r in range(DNA_SIZE):
         plt.plot(pop[:, r], f_values, 'o')
         plt.savefig('plot/' + str(r + 1) + 'plots.pdf')
         plt.close()
-    print(mlpr.score(pop, y))
+    print(mlpr.score(pop, y_exp))
     plt.subplot(2, 1, 1)
     plt.plot(pop, f_values, 'o')
     plt.subplot(2, 1, 2)
     plt.plot(X, y, 'o')
     plt.show()
+    mlpr.fit(pop, y_exp)
+    print(mlpr.score(X, y_exp))
 
 
-def get_fitness(values, y_exp):
+def get_fitness(values, y_expected):
     """Get the fitness of the predicted outputs.
 
     Args:
         values (ndarray): Predicted outputs based on the generated population.
-        y_exp (ndarray): Expected outputs.
+        y_expected (ndarray): Expected outputs.
 
     Return:
         fness (ndarray): Fitness if the predicted outputs.
@@ -100,7 +98,7 @@ def get_fitness(values, y_exp):
     fnessm = np.empty((POP_SIZE, POP_SIZE))
     for jj in range(POP_SIZE):
         for j in range(POP_SIZE):
-            fnessm[jj, j] = pow((1 / (1 + abs(la.norm((values[jj] - y_exp[j]))))), 8)
+            fnessm[jj, j] = pow((1 / (1 + abs(la.norm((values[jj] - y_expected[j]))))), 8)
         fness[jj] = np.max(fnessm[jj])
     return fness
 
@@ -180,7 +178,7 @@ def evolve(pop, fitness):
     graded = np.asarray(graded)
     fitness = [x for x in sorted(fitness, reverse=True)]
     fitness = np.asarray(fitness)
-    retains = np.average(((pow(np.min(fitness), 1) / np.max(fitness)), retain))
+    retains = np.average(((pow(np.min(fitness), 4) / np.max(fitness)), retain))
     retain_length = int(np.floor(len(graded) * retains))
     parents = np.asarray(graded[:retain_length])
 
