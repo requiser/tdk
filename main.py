@@ -9,10 +9,10 @@ import numpy.linalg as LA
 from termcolor import colored
 
 # CROSS_RATE = 0.9  # mating probability (DNA crossover)
-MUTATION_RATE = 0.15  # mutation probability
+MUTATION_RATE = 0.01  # mutation probability
 retain = 0.23
-random_select = 0.01
-N_GENERATIONS = 500
+random_select = 0.03
+N_GENERATIONS = 200
 
 module_path = dirname(__file__)
 # data, target, target_names = load_data(module_path, 'dataset.csv')
@@ -72,7 +72,7 @@ with open(data_file_name) as f:
         hl.append(POP_SIZE * (k + 1))
 
     mlpr = MLPRegressor(hidden_layer_sizes=hl,
-                        activation='logistic',
+                        activation='relu',
                         solver='adam',
                         learning_rate='adaptive',
                         max_iter=100,
@@ -92,9 +92,9 @@ def main():
     F_values = np.empty(POP_SIZE)
     # for __ in range(2):
     score = -1
-    while score < 0:
-        pop = create_population()
-        score = mlpr.score(pop, y)
+    # while score < 0:
+    pop = create_population()
+    # score = mlpr.score(pop, y)
 
     for _ in range(N_GENERATIONS):
         F_values = mlpr.predict(pop)
@@ -154,8 +154,11 @@ def get_fitness(values, y_exp, score):
     #        F_val[l, k] = mlpr.predict(pop[k].reshape(1, -1))
     #    F_values[l] = np.max(F_val[l])
     fness = np.empty(POP_SIZE)
-    for j in range(POP_SIZE):
-        fness[j] = pow((1 / (1 + abs(LA.norm((values[j] - y_exp[j]))))), 1 / 2)
+    fnessm = np.empty((POP_SIZE, POP_SIZE))
+    for jj in range(POP_SIZE):
+        for j in range(POP_SIZE):
+            fnessm[jj, j] = pow((1 / (1 + abs(LA.norm((values[jj] - y_exp[j]))))), 8)
+        fness[jj] = np.max(fnessm[jj])
     return fness
 
 
@@ -256,7 +259,7 @@ def evolve(pop, fitness, score):
     #     (np.average(fitness[:int(retain * len(fitness))]),
     #      np.average(fitness[int(retain * len(fitness)):]))) / np.average(
     #     fitness[:]), 4)
-    retains = (np.average(fitness) / np.max(fitness))
+    retains = (pow(np.average(fitness), 1) / np.max(fitness))
     # retains = pow(np.average((np.average(fitness), np.min(fitness))) / np.max(fitness), 1/3)
     # print('Retain:\t', retains)
     # retains = retains if retains > retain else retain
@@ -291,20 +294,25 @@ def evolve(pop, fitness, score):
             # Breed them.
             babies = np.asarray(crossover(male, female, parents))
             # Add the children one at a time.
-            #jk = 0
-            if len(children) == 0:
-                children = babies
-            else:
-                #for _ in range(babies.shape[0]):
-                    # print(children.shape)
-                    # print(babies.shape)
-                    # Don't grow larger than desired length.
-                    if len(children) < desired_length:
+            # jk = 0
+
+            for _ in range(babies.shape[0]):
+                # print(children.shape)
+                # print(babies.shape)
+                # Don't grow larger than desired length.
+                if len(children) < desired_length:
+                    if len(children) == 0:
+                        children = babies
+                    else:
                         # print(babies[k].shape)
                         # print(babies[k])
-                        children = np.concatenate((children, babies), axis=0)
-                #    jk = jk + 1
-    parents = np.concatenate((parents, children), axis=0)
+                        children = np.concatenate((children, [babies[_]]), axis=0)
+                        #    jk = jk + 1
+    if len(children) > (POP_SIZE - len(parents)):
+        parents = np.concatenate((parents, [children[0]]), axis=0)
+    else:
+        parents = np.concatenate((parents, children), axis=0)
+    print(parents.shape)
     return parents
 
 
