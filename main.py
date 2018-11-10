@@ -9,10 +9,10 @@ import numpy.linalg as LA
 from termcolor import colored
 
 # CROSS_RATE = 0.9  # mating probability (DNA crossover)
-MUTATION_RATE = 0.1  # mutation probability
-retain = 0.2
+MUTATION_RATE = 0.15  # mutation probability
+retain = 0.23
 random_select = 0.01
-N_GENERATIONS = 200
+N_GENERATIONS = 500
 
 module_path = dirname(__file__)
 # data, target, target_names = load_data(module_path, 'dataset.csv')
@@ -67,15 +67,16 @@ with open(data_file_name) as f:
     dt = np.asarray(dt)
     print(dt)
     # X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=3)
+    hl = []
+    for k in range(int(np.ceil(DNA_SIZE / 2))):
+        hl.append(POP_SIZE * (k + 1))
 
-    mlpr = MLPRegressor(hidden_layer_sizes=(POP_SIZE, POP_SIZE * 2, POP_SIZE * 4, POP_SIZE * 8, POP_SIZE * 16),
+    mlpr = MLPRegressor(hidden_layer_sizes=hl,
                         activation='logistic',
                         solver='adam',
                         learning_rate='adaptive',
-                        tol=0.000001,
                         max_iter=100,
                         verbose=True)
-
     mlpr.fit(X, y)
 
 
@@ -90,7 +91,11 @@ def main():
     # Gen(mlpr)
     F_values = np.empty(POP_SIZE)
     # for __ in range(2):
-    pop = create_population()
+    score = -1
+    while score < 0:
+        pop = create_population()
+        score = mlpr.score(pop, y)
+
     for _ in range(N_GENERATIONS):
         F_values = mlpr.predict(pop)
         score = mlpr.score(pop, y)
@@ -118,18 +123,19 @@ def main():
 
     # print(pop)
     # print(F_values)
+
+    for r in range(DNA_SIZE):
+        plt.plot(pop[:, r], F_values, 'o')
+        plt.savefig('plot/' + str(r + 1) + 'plots.pdf')
+        plt.close()
+    # best = np.empty((2, DNA_SIZE))
+    # best[__, :] = pop[0, :]
     print(mlpr.score(pop, y))
     plt.subplot(2, 1, 1)
     plt.plot(pop, F_values, 'o')
     plt.subplot(2, 1, 2)
     plt.plot(X, y, 'o')
     plt.show()
-    for r in range(DNA_SIZE):
-        plt.subplot(DNA_SIZE, 1, r+1)
-        plt.plot(pop[:, r], F_values, 'o')
-    plt.savefig('plot/plots.pdf')
-    # best = np.empty((2, DNA_SIZE))
-    # best[__, :] = pop[0, :]
 
 
 # print(mlpr.score(best, y[:2]))
@@ -175,10 +181,10 @@ def mutate(child, parents):
         if np.random.rand() < MUTATION_RATE:
             if child[point] == 0:
                 child[point] = child[point] + np.random.uniform(
-                    np.average(parents[:, point]) * -np.random.uniform(-3, 3),
-                    np.average(parents[:, point]) * np.random.uniform(-3, 3))
+                    np.average(parents[:, point]) * -np.random.uniform(-2, 2),
+                    np.average(parents[:, point]) * np.random.uniform(-2, 2))
             else:
-                child[point] * (np.random.uniform(0.3, 3))
+                child[point] * (np.random.uniform(0.5, 2))
             if dt[point] == 0:
                 child[point] = np.random.choice((0, 1)
                                                 # , p=(1 - np.average(X[:, point]), np.average(X[:, point]))
@@ -250,11 +256,13 @@ def evolve(pop, fitness, score):
     #     (np.average(fitness[:int(retain * len(fitness))]),
     #      np.average(fitness[int(retain * len(fitness)):]))) / np.average(
     #     fitness[:]), 4)
+    retains = (np.average(fitness) / np.max(fitness))
     # retains = pow(np.average((np.average(fitness), np.min(fitness))) / np.max(fitness), 1/3)
     # print('Retain:\t', retains)
     # retains = retains if retains > retain else retain
     # print(retains)
-    retain_length = int(len(graded) * retain)
+    retain_length = int(np.floor(len(graded) * retains))
+    print(retain_length)
     # The parents are every network we want to keep.
     parents = np.asarray(graded[:retain_length])
 
@@ -265,8 +273,8 @@ def evolve(pop, fitness, score):
 
     # Now find out how many spots we have left to fill.
     parents_length = len(parents)
-    desired_length = len(pop) - parents_length
-    children = np.empty(DNA_SIZE)
+    desired_length = POP_SIZE - parents_length
+    children = np.empty(0)
     cf = 0
     # Add children, which are bred from two remaining networks.
     while len(children) < desired_length:
@@ -283,20 +291,19 @@ def evolve(pop, fitness, score):
             # Breed them.
             babies = np.asarray(crossover(male, female, parents))
             # Add the children one at a time.
-            k = 0
-            if cf == 0:
+            #jk = 0
+            if len(children) == 0:
                 children = babies
-                cf = cf + 1
             else:
-                for _ in range(babies.shape[0]):
+                #for _ in range(babies.shape[0]):
                     # print(children.shape)
                     # print(babies.shape)
                     # Don't grow larger than desired length.
                     if len(children) < desired_length:
                         # print(babies[k].shape)
                         # print(babies[k])
-                        children = np.concatenate((children, [babies[k]]), axis=0)
-                    k = k + 1
+                        children = np.concatenate((children, babies), axis=0)
+                #    jk = jk + 1
     parents = np.concatenate((parents, children), axis=0)
     return parents
 
