@@ -1,21 +1,17 @@
-import numpy as np
 import csv
 from os.path import dirname, join
-from sklearn import datasets
-from sklearn.model_selection import train_test_split
-from sklearn.neural_network import MLPRegressor
 import matplotlib.pyplot as plt
-import numpy.linalg as LA
-from termcolor import colored
+import numpy as np
+import numpy.linalg as la
+from sklearn import datasets
+from sklearn.neural_network import MLPRegressor
 
-# CROSS_RATE = 0.9  # mating probability (DNA crossover)
 MUTATION_RATE = 0.01  # mutation probability
 retain = 0.2
 random_select = 0.03
 N_GENERATIONS = 200
 
 module_path = dirname(__file__)
-# data, target, target_names = load_data(module_path, 'dataset.csv')
 data_file_name = join(module_path, 'data', 'boston_house_prices.csv')
 with open(data_file_name) as f:
     data_file = csv.reader(f)
@@ -26,27 +22,17 @@ with open(data_file_name) as f:
     POP_SIZE = n_samples
     DNA_SIZE = n_features
     target = np.empty((n_samples,))
-    # temp = next(data_file)  # names of features
-    # feature_names = np.array(temp)
 
     for i, d in enumerate(data_file):
         data[i] = np.asarray(d[:-1])
         target[i] = np.asarray(d[-1])
 
-    # with open(join(module_path, 'descr', 'dataset.rst')) as rst_file:
-    #    fdescr = rst_file.read()
-    # feature_names = ['sepal length (cm)', 'sepal width (cm)',
-    # 'petal length (cm)', 'petal width (cm)']
-    # feature_names = ['input', 'output']
     feature_names = ['CRIM', 'ZN', 'INDUS', 'CHAS', 'NOX', 'RM', 'AGE', 'DIS', 'RAD', 'TAX',
                      'PTRATIO', 'B', 'LSTAT', 'MEDV']
     df = datasets.base.Bunch(data=data, target=target,
                              feature_names=feature_names)
-    # DNA_SIZE = 6
-    POP_SIZE = 80
-    # print(DNA_SIZE)
+
     X = df.data[:POP_SIZE, :DNA_SIZE]
-    # print(X)
     y = df.target[:POP_SIZE]
     dt = []
     dt_a = []
@@ -66,7 +52,6 @@ with open(data_file_name) as f:
         dt_a = []
     dt = np.asarray(dt)
     print(dt)
-    # X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=3)
     hl = []
     for k in range(int(np.ceil(DNA_SIZE / 2))):
         hl.append(POP_SIZE * (k + 1))
@@ -81,89 +66,54 @@ with open(data_file_name) as f:
 
 
 def main():
-    # df = datasets.load_iris()
-    # X = df.data[:, :4]
-
-    # mlpr.predict(X)
-    # print(Gen.create_population().shape)
-    # print(df.data)
-    # Gen.create_population()
-    # Gen(mlpr)
-    F_values = np.empty(POP_SIZE)
-    # for __ in range(2):
-    score = -1
-    # while score < 0:
+    f_values = np.empty(POP_SIZE)
     pop = create_population()
-    # score = mlpr.score(pop, y)
-
     for _ in range(N_GENERATIONS):
-        F_values = mlpr.predict(pop)
+        f_values = mlpr.predict(pop)
         score = mlpr.score(pop, y)
-        # F_values = mlpr.predict(pop)  # compute function value by extracting DNA
-        # something about plotting
-        # if 'sca' in globals(): sca.remove()
-        # sca = plt.scatter(pop, F_values, s=200, lw=0, c='red', alpha=0.5)
-        # plt.pause(0.05)
-        # GA part (evolution)
-        fitness = get_fitness(F_values, y, score, pop)
-
+        fitness = get_fitness(f_values, y)
         print('Score:\t', score, '\tFitness:\t', np.average(fitness))
-
-        # print(fitness)
-        # mlpr.score(pop[100].reshape(1, -1), y[100].reshape(1, -1))
-        # print(_, ". Most fitted DNA: ", pop[np.argmax(fitness), :DNA_SIZE])
-        # print(np.max(fitness))
-        # pop = select(pop, fitness)
-        pop = evolve(pop, fitness, score)
-        # pop_copy = pop.copy()
-        # for parent in pop:
-        #    child = crossover(parent, pop_copy)
-        #    child = mutate(child)
-        #    parent[:] = child
-
-    # print(pop)
-    # print(F_values)
-
+        pop = evolve(pop, fitness)
     for r in range(DNA_SIZE):
-        plt.plot(pop[:, r], F_values, 'o')
+        plt.plot(pop[:, r], f_values, 'o')
         plt.savefig('plot/' + str(r + 1) + 'plots.pdf')
         plt.close()
-    # best = np.empty((2, DNA_SIZE))
-    # best[__, :] = pop[0, :]
     print(mlpr.score(pop, y))
     plt.subplot(2, 1, 1)
-    plt.plot(pop, F_values, 'o')
+    plt.plot(pop, f_values, 'o')
     plt.subplot(2, 1, 2)
     plt.plot(X, y, 'o')
     plt.show()
 
 
-# print(mlpr.score(best, y[:2]))
-# plt.subplot(2, 1, 1)
-# plt.plot(best, mlpr.predict(best), 'o')
-# plt.subplot(2, 1, 2)
-# plt.plot(X, y, 'o')
-# plt.show()
+def get_fitness(values, y_exp):
+    """Get the fitness of the predicted outputs.
 
+    Args:
+        values (ndarray): Predicted outputs based on the generated population.
+        y_exp (ndarray): Expected outputs.
 
-def get_fitness(values, y_exp, score, pop):
-    # F_val = np.empty((POP_SIZE, POP_SIZE))
-    # F_values = np.empty(POP_SIZE)
-    # for l in range(POP_SIZE):
-    #    for k in range(POP_SIZE):
-    #        F_val[l, k] = mlpr.predict(pop[k].reshape(1, -1))
-    #    F_values[l] = np.max(F_val[l])
+    Return:
+        fness (ndarray): Fitness if the predicted outputs.
+    """
     fness = np.empty(POP_SIZE)
     fnessm = np.empty((POP_SIZE, POP_SIZE))
     for jj in range(POP_SIZE):
         for j in range(POP_SIZE):
-            fnessm[jj, j] = pow((1 / (1 + abs(LA.norm((values[jj] - y_exp[j]))))), 8)
+            fnessm[jj, j] = pow((1 / (1 + abs(la.norm((values[jj] - y_exp[j]))))), 8)
         fness[jj] = np.max(fnessm[jj])
     return fness
 
 
 def create_population():
-    # data_f = np.random.uniform(0, np.argmax(df.data, 0) * 1.1, size=POP_SIZE)
+    """Generate population based on the training data.
+
+    Args:
+
+    Return:
+        pop (ndarray): Generated input data population.
+
+    """
     data_f = np.empty((POP_SIZE, DNA_SIZE))
     for o in range(DNA_SIZE):
         for l in range(POP_SIZE):
@@ -180,6 +130,16 @@ def create_population():
 
 
 def mutate(child, parents):
+    """Randomly mutate some of the children.
+
+    Args:
+        child (ndarray): New children from crossover.
+        parents (ndarray): Surviving parent population.
+
+    Return:
+        child(ndarray): Children that either got mutated or returned as it was.
+
+    """
     for point in range(DNA_SIZE):
         if np.random.rand() < MUTATION_RATE:
             if child[point] == 0:
@@ -189,84 +149,39 @@ def mutate(child, parents):
             else:
                 child[point] * (np.random.uniform(0.5, 2))
             if dt[point] == 0:
-                child[point] = np.random.choice((0, 1)
-                                                # , p=(1 - np.average(X[:, point]), np.average(X[:, point]))
-                                                )
+                child[point] = np.random.choice((0, 1))
     return child
 
 
-# def select(pop, fitness):  # nature selection wrt pop's fitness
-#     idx = np.random.choice(np.arange(POP_SIZE), size=POP_SIZE, replace=True,
-#                            p=fitness / fitness.sum())
-#     return pop[idx]
-
-
 def crossover(father, mother, parents):  # mating process (genes crossover)
-    # if np.random.rand() < CROSS_RATE:
-    #    i_ = np.random.randint(0, POP_SIZE, size=1)  # select another individual from pop
-    #    cross_points = np.random.randint(0, DNA_SIZE)  # choose crossover points
-    #    parent[cross_points] = pop[i_, cross_points]  # mating and produce one child
-    # return parent
     children = []
     for _ in range(2):
         child = []
-        # Loop through the parameters and pick params for the kid.
-
         for q in range(DNA_SIZE):
             child.append(np.random.choice((father[q], mother[q])))
-        # np.asarray(child)
-        # Now create a network object.
-        # network = Network(self.nn_param_choices)
-        # network.create_set(child)
-
-        # Randomly mutate some of the children.
-        # if mutate_chance > random.random():
-        #    network = self.mutate(network)
         child = mutate(child, parents)
         children.append(child)
     np.asarray(children)
     return children
 
 
-def evolve(pop, fitness, score):
+def evolve(pop, fitness):
     """Evolve a population of networks.
 
     Args:
         pop (ndarray): An array of input parameters
         fitness (ndarray): An array of fitness scores
-        score (float): The score of the mlpregressor
 
     Returns:
         (list): The evolved population of networks
 
     """
-    # Get scores for each network.
-
-    # graded = [(fitness, pop) for _ in range(POP_SIZE)]
-    # print(graded)
-    # Sort on the scores.
-    # graded = [x[1] for x in sorted(graded, key=lambda x: x[0], reverse=True)]
     graded = [x[1] for x in sorted(zip(fitness, pop), key=lambda x: x[0], reverse=True)]
     graded = np.asarray(graded)
-    # Get the number we want to keep for the next gen.
-    # if 1 / abs(score - 1) > 1 / (retain + 1):
-    #    retains = 1 - (2 - retain - abs(score - 1))
-
     fitness = [x for x in sorted(fitness, reverse=True)]
     fitness = np.asarray(fitness)
-    # print(fitness[:int(retain*len(fitness))])
-    # retains = pow(np.average(
-    #     (np.average(fitness[:int(retain * len(fitness))]),
-    #      np.average(fitness[int(retain * len(fitness)):]))) / np.average(
-    #     fitness[:]), 4)
     retains = np.average(((pow(np.min(fitness), 1) / np.max(fitness)), retain))
-    # retains = pow(np.average((np.average(fitness), np.min(fitness))) / np.max(fitness), 1/3)
-    # print('Retain:\t', retains)
-    # retains = retains if retains > retain else retain
-    # print(retains)
     retain_length = int(np.floor(len(graded) * retains))
-    print(retain_length)
-    # The parents are every network we want to keep.
     parents = np.asarray(graded[:retain_length])
 
     # For those we aren't keeping, randomly keep some anyway.
@@ -278,7 +193,6 @@ def evolve(pop, fitness, score):
     parents_length = len(parents)
     desired_length = POP_SIZE - parents_length
     children = np.empty(0)
-    cf = 0
     # Add children, which are bred from two remaining networks.
     while len(children) < desired_length:
 
@@ -290,29 +204,23 @@ def evolve(pop, fitness, score):
         if male != female:
             male = parents[male]
             female = parents[female]
-            # fm = np.concatenate((male, female), 0)
+
             # Breed them.
             babies = np.asarray(crossover(male, female, parents))
-            # Add the children one at a time.
-            # jk = 0
 
+            # Add the children one at a time.
             for _ in range(babies.shape[0]):
-                # print(children.shape)
-                # print(babies.shape)
+
                 # Don't grow larger than desired length.
                 if len(children) < desired_length:
                     if len(children) == 0:
                         children = babies
                     else:
-                        # print(babies[k].shape)
-                        # print(babies[k])
                         children = np.concatenate((children, [babies[_]]), axis=0)
-                        #    jk = jk + 1
     if len(children) > (POP_SIZE - len(parents)):
         parents = np.concatenate((parents, [children[0]]), axis=0)
     else:
         parents = np.concatenate((parents, children), axis=0)
-    print(parents.shape)
     return parents
 
 
