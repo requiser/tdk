@@ -9,7 +9,7 @@ import numpy.linalg as LA
 from termcolor import colored
 
 # CROSS_RATE = 0.9  # mating probability (DNA crossover)
-MUTATION_RATE = 0.3  # mutation probability
+MUTATION_RATE = 0.1  # mutation probability
 retain = 0.2
 random_select = 0.01
 N_GENERATIONS = 200
@@ -124,6 +124,10 @@ def main():
     plt.subplot(2, 1, 2)
     plt.plot(X, y, 'o')
     plt.show()
+    for r in range(DNA_SIZE):
+        plt.subplot(DNA_SIZE, 1, r+1)
+        plt.plot(pop[:, r], F_values, 'o')
+    plt.savefig('plot/plots.pdf')
     # best = np.empty((2, DNA_SIZE))
     # best[__, :] = pop[0, :]
 
@@ -145,7 +149,7 @@ def get_fitness(values, y_exp, score):
     #    F_values[l] = np.max(F_val[l])
     fness = np.empty(POP_SIZE)
     for j in range(POP_SIZE):
-        fness[j] = pow((1 / (1 + abs(LA.norm((values[j] - y_exp[j]))))), 1/2)
+        fness[j] = pow((1 / (1 + abs(LA.norm((values[j] - y_exp[j]))))), 1 / 2)
     return fness
 
 
